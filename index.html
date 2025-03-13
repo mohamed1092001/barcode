@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>قارئ الباركود و QR Code مع مربع متحرك</title>
+    <title>قارئ الباركود و QR Code مع مربع متتبع</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -56,7 +56,7 @@
     </style>
 </head>
 <body>
-    <h1>قارئ الباركود و QR Code مع مربع متحرك</h1>
+    <h1>قارئ الباركود و QR Code مع مربع متتبع</h1>
     <div id="scanner-container">
         <video id="scanner" width="100%" height="auto"></video>
         <canvas id="overlay"></canvas>
@@ -79,7 +79,7 @@
         let animationFrameId;
         let lastResult = null;
 
-        // رسم المربع المتحرك
+        // رسم مربع حول الباركود أو QR Code
         function drawOverlay(box = null, color = "red") {
             const ctx = overlayCanvas.getContext('2d');
             const width = videoElement.videoWidth;
@@ -98,14 +98,6 @@
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 4;
                 ctx.strokeRect(x, y, w, h);
-            } else {
-                // رسم مربع متحرك في حالة البحث
-                const size = Math.min(width, height) * 0.6;
-                const x = (width - size) / 2;
-                const y = (height - size) / 2;
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 4;
-                ctx.strokeRect(x, y, size, size);
             }
         }
 
@@ -141,15 +133,22 @@
                 function animate() {
                     if (lastResult) {
                         // إذا تم اكتشاف باركود أو QR Code، ارسم مربعًا حوله
-                        const [x, y, w, h] = [
-                            lastResult.resultPoints[0].x,
-                            lastResult.resultPoints[0].y,
-                            lastResult.resultPoints[1].x - lastResult.resultPoints[0].x,
-                            lastResult.resultPoints[1].y - lastResult.resultPoints[0].y
-                        ];
-                        drawOverlay([x, y, w, h], "green");
+                        const points = lastResult.resultPoints;
+                        if (points.length >= 4) {
+                            const [x1, y1, x2, y2, x3, y3, x4, y4] = [
+                                points[0].x, points[0].y,
+                                points[1].x, points[1].y,
+                                points[2].x, points[2].y,
+                                points[3].x, points[3].y
+                            ];
+                            const x = Math.min(x1, x2, x3, x4);
+                            const y = Math.min(y1, y2, y3, y4);
+                            const w = Math.max(x1, x2, x3, x4) - x;
+                            const h = Math.max(y1, y2, y3, y4) - y;
+                            drawOverlay([x, y, w, h], "green");
+                        }
                     } else {
-                        // إذا لم يتم اكتشاف شيء، ارسم مربعًا متحركًا
+                        // إذا لم يتم اكتشاف شيء، لا ترسم شيئًا
                         drawOverlay();
                     }
                     animationFrameId = requestAnimationFrame(animate);
