@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>قارئ الباركود و QR Code باستخدام الكاميرا</title>
+    <title>قارئ الباركود و QR Code مع مربع متحرك</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -15,13 +15,25 @@
         h1 {
             color: #333;
         }
-        #scanner {
+        #scanner-container {
+            position: relative;
             width: 100%;
             max-width: 500px;
             margin: 20px auto;
+        }
+        #scanner {
+            width: 100%;
             display: block;
             border: 2px solid #ccc;
             border-radius: 10px;
+        }
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* حتى لا يتداخل مع الفيديو */
         }
         #result {
             font-size: 1.5em;
@@ -44,8 +56,11 @@
     </style>
 </head>
 <body>
-    <h1>قارئ الباركود و QR Code باستخدام الكاميرا</h1>
-    <video id="scanner" width="100%" height="auto"></video>
+    <h1>قارئ الباركود و QR Code مع مربع متحرك</h1>
+    <div id="scanner-container">
+        <video id="scanner" width="100%" height="auto"></video>
+        <canvas id="overlay"></canvas>
+    </div>
     <div id="result">سيظهر الباركود أو QR Code هنا...</div>
     <button id="startButton">بدء المسح</button>
     <button id="stopButton" disabled>إيقاف المسح</button>
@@ -55,11 +70,44 @@
     <script>
         const codeReader = new ZXing.BrowserMultiFormatReader();
         const videoElement = document.getElementById('scanner');
+        const overlayCanvas = document.getElementById('overlay');
         const resultElement = document.getElementById('result');
         const startButton = document.getElementById('startButton');
         const stopButton = document.getElementById('stopButton');
 
         let isScanning = false;
+        let animationFrameId;
+        let lastResult = null;
+
+        // رسم المربع المتحرك
+        function drawOverlay(box = null, color = "red") {
+            const ctx = overlayCanvas.getContext('2d');
+            const width = videoElement.videoWidth;
+            const height = videoElement.videoHeight;
+
+            // ضبط أبعاد الـ canvas لتتناسب مع الفيديو
+            overlayCanvas.width = width;
+            overlayCanvas.height = height;
+
+            // مسح الـ canvas
+            ctx.clearRect(0, 0, width, height);
+
+            if (box) {
+                // رسم المربع حول الباركود أو QR Code
+                const [x, y, w, h] = box;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 4;
+                ctx.strokeRect(x, y, w, h);
+            } else {
+                // رسم مربع متحرك في حالة البحث
+                const size = Math.min(width, height) * 0.6;
+                const x = (width - size) / 2;
+                const y = (height - size) / 2;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 4;
+                ctx.strokeRect(x, y, size, size);
+            }
+        }
 
         // بدء المسح
         startButton.addEventListener('click', async () => {
@@ -71,10 +119,12 @@
                 videoElement.srcObject = stream;
                 videoElement.play();
 
+                // بدء المسح
                 codeReader.decodeFromVideoDevice(null, videoElement, (result, err) => {
                     if (result) {
                         console.log("تم الاكتشاف:", result.text);
                         resultElement.innerText = `الناتج: ${result.text}`;
+                        lastResult = result;
                     }
                     if (err && !(err instanceof ZXing.NotFoundException)) {
                         console.error("خطأ:", err);
@@ -86,6 +136,25 @@
                 resultElement.innerText = "جارٍ المسح...";
                 startButton.disabled = true;
                 stopButton.disabled = false;
+
+                // بدء رسم المربع المتحرك
+                function animate() {
+                    if (lastResult) {
+                        // إذا تم اكتشاف باركود أو QR Code، ارسم مربعًا حوله
+                        const [x, y, w, h] = [
+                            lastResult.resultPoints[0].x,
+                            lastResult.resultPoints[0].y,
+                            lastResult.resultPoints[1].x - lastResult.resultPoints[0].x,
+                            lastResult.resultPoints[1].y - lastResult.resultPoints[0].y
+                        ];
+                        drawOverlay([x, y, w, h], "green");
+                    } else {
+                        // إذا لم يتم اكتشاف شيء، ارسم مربعًا متحركًا
+                        drawOverlay();
+                    }
+                    animationFrameId = requestAnimationFrame(animate);
+                }
+                animate();
             } catch (error) {
                 console.error("خطأ في الوصول إلى الكاميرا:", error);
                 resultElement.innerText = "تعذر الوصول إلى الكاميرا. تأكد من السماح بالوصول.";
@@ -102,6 +171,8 @@
             resultElement.innerText = "تم إيقاف المسح.";
             startButton.disabled = false;
             stopButton.disabled = true;
+            cancelAnimationFrame(animationFrameId); // إيقاف الرسم المتحرك
+            drawOverlay(); // مسح الـ canvas
         });
 
         // إيقاف الكاميرا عند إغلاق الصفحة
@@ -110,6 +181,7 @@
             if (videoElement.srcObject) {
                 videoElement.srcObject.getTracks().forEach(track => track.stop());
             }
+            cancelAnimationFrame(animationFrameId);
         });
     </script>
 </body>
