@@ -4,57 +4,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>قارئ الباركود</title>
+    <title>قارئ الباركود باستخدام الكاميرا</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
         #scanner {
             width: 100%;
             max-width: 500px;
-            margin: 0 auto;
+            margin: 20px auto;
             display: block;
+            border: 2px solid #ccc;
+            border-radius: 10px;
         }
 
         #result {
-            text-align: center;
             font-size: 1.5em;
+            color: #007BFF;
             margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 
 <body>
-    <h1 style="text-align: center;">قارئ الباركود باستخدام الكاميرا</h1>
-    <div id="scanner"></div>
-    <div id="result"></div>
+    <h1>قارئ الباركود باستخدام الكاميرا</h1>
+    <video id="scanner" width="100%" height="auto"></video>
+    <div id="result">سيظهر الباركود هنا...</div>
+    <button id="startButton">بدء المسح</button>
+    <button id="stopButton">إيقاف المسح</button>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <!-- مكتبة ZXing -->
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script>
-        // تهيئة QuaggaJS
-        Quagga.init({
-            inputStream: {
-                name: "Live",
-                type: "LiveStream",
-                target: document.querySelector('#scanner'), // العنصر الذي يعرض الكاميرا
-                constraints: {
-                    facingMode: "environment" // استخدام الكاميرا الخلفية
+        const codeReader = new ZXing.BrowserMultiFormatReader();
+        const videoElement = document.getElementById('scanner');
+        const resultElement = document.getElementById('result');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+
+        let isScanning = false;
+
+        // بدء المسح
+        startButton.addEventListener('click', () => {
+            if (isScanning) return;
+
+            codeReader.decodeFromVideoDevice(null, videoElement, (result, err) => {
+                if (result) {
+                    console.log("تم اكتشاف الباركود:", result.text);
+                    resultElement.innerText = `الباركود: ${result.text}`;
                 }
-            },
-            decoder: {
-                readers: ["code_128_reader", "ean_reader", "upc_reader"] // أنواع الباركود المدعومة
-            }
-        }, function (err) {
-            if (err) {
-                console.error("خطأ في التهيئة:", err);
-                return;
-            }
-            console.log("تم التهيئة بنجاح");
-            Quagga.start();
+                if (err && !(err instanceof ZXing.NotFoundException)) {
+                    console.error("خطأ:", err);
+                    resultElement.innerText = "حدث خطأ أثناء المسح.";
+                }
+            });
+
+            isScanning = true;
+            resultElement.innerText = "جارٍ المسح...";
+            startButton.disabled = true;
+            stopButton.disabled = false;
         });
 
-        // عند اكتشاف الباركود
-        Quagga.onDetected(function (result) {
-            const code = result.codeResult.code;
-            document.getElementById('result').innerText = `الباركود: ${code}`;
-            console.log("تم اكتشاف الباركود:", code);
+        // إيقاف المسح
+        stopButton.addEventListener('click', () => {
+            codeReader.reset();
+            isScanning = false;
+            resultElement.innerText = "تم إيقاف المسح.";
+            startButton.disabled = false;
+            stopButton.disabled = true;
+        });
+
+        // إيقاف الكاميرا عند إغلاق الصفحة
+        window.addEventListener('beforeunload', () => {
+            codeReader.reset();
         });
     </script>
 </body>
