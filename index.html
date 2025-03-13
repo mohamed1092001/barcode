@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>قارئ الباركود باستخدام الكاميرا</title>
+    <title>قارئ الباركود و QR Code باستخدام الكاميرا</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -44,9 +44,9 @@
     </style>
 </head>
 <body>
-    <h1>قارئ الباركود باستخدام الكاميرا</h1>
+    <h1>قارئ الباركود و QR Code باستخدام الكاميرا</h1>
     <video id="scanner" width="100%" height="auto"></video>
-    <div id="result">سيظهر الباركود هنا...</div>
+    <div id="result">سيظهر الباركود أو QR Code هنا...</div>
     <button id="startButton">بدء المسح</button>
     <button id="stopButton" disabled>إيقاف المسح</button>
 
@@ -73,8 +73,8 @@
 
                 codeReader.decodeFromVideoDevice(null, videoElement, (result, err) => {
                     if (result) {
-                        console.log("تم اكتشاف الباركود:", result.text);
-                        resultElement.innerText = `الباركود: ${result.text}`;
+                        console.log("تم الاكتشاف:", result.text);
+                        resultElement.innerText = `الناتج: ${result.text}`;
                     }
                     if (err && !(err instanceof ZXing.NotFoundException)) {
                         console.error("خطأ:", err);
