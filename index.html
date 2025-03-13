@@ -80,7 +80,7 @@
         let lastResult = null;
 
         // رسم مربع حول الباركود أو QR Code
-        function drawOverlay(box = null, color = "red") {
+        function drawOverlay(box = null, color = "black") {
             const ctx = overlayCanvas.getContext('2d');
             const width = videoElement.videoWidth;
             const height = videoElement.videoHeight;
@@ -98,6 +98,14 @@
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 4;
                 ctx.strokeRect(x, y, w, h);
+            } else {
+                // رسم مربع أسود في حالة البحث
+                const size = Math.min(width, height) * 0.6;
+                const x = (width - size) / 2;
+                const y = (height - size) / 2;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 4;
+                ctx.strokeRect(x, y, size, size);
             }
         }
 
@@ -132,7 +140,7 @@
                 // بدء رسم المربع المتحرك
                 function animate() {
                     if (lastResult) {
-                        // إذا تم اكتشاف باركود أو QR Code، ارسم مربعًا حوله
+                        // إذا تم اكتشاف باركود أو QR Code، ارسم مربعًا حوله باللون الأخضر
                         const points = lastResult.resultPoints;
                         if (points.length >= 4) {
                             const [x1, y1, x2, y2, x3, y3, x4, y4] = [
@@ -148,7 +156,7 @@
                             drawOverlay([x, y, w, h], "green");
                         }
                     } else {
-                        // إذا لم يتم اكتشاف شيء، لا ترسم شيئًا
+                        // إذا لم يتم اكتشاف شيء، ارسم مربعًا أسود
                         drawOverlay();
                     }
                     animationFrameId = requestAnimationFrame(animate);
